@@ -27,7 +27,9 @@ services:
       retries: 5
 
   api:
-    build: .
+    build:
+      context: ..
+      dockerfile: builds/Dockerfile
     command: sh -c "alembic upgrade head && uvicorn app.entrypoints.http.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
@@ -37,12 +39,21 @@ services:
       rabbitmq:
         condition: service_healthy
     environment:
-      APP_DATABASE_URL: postgresql+asyncpg://payments:payments@postgres:5432/payments
-      APP_RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-      APP_API_KEY: secret-api-key
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: payments
+      DB_PASSWORD: payments
+      DB_NAME: payments
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      API_KEY: secret-api-key
 
   consumer:
-    build: .
+    build:
+      context: ..
+      dockerfile: builds/Dockerfile
     command: faststream run app.entrypoints.messaging.worker:app --log-level info
     depends_on:
       postgres:
@@ -50,8 +61,15 @@ services:
       rabbitmq:
         condition: service_healthy
     environment:
-      APP_DATABASE_URL: postgresql+asyncpg://payments:payments@postgres:5432/payments
-      APP_RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: payments
+      DB_PASSWORD: payments
+      DB_NAME: payments
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
 
 volumes:
   pgdata:

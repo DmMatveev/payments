@@ -6,7 +6,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import tests.factories
-from app.entrypoints.http.dependencies import get_session
+from app.entrypoints.http.dependencies import session
 from app.entrypoints.http.exception_handlers import register_exception_handlers
 from app.entrypoints.http.v1 import router
 
@@ -20,7 +20,7 @@ def app(db_session: AsyncSession) -> FastAPI:
     async def override_session() -> AsyncGenerator[AsyncSession]:
         yield db_session
 
-    app_instance.dependency_overrides[get_session] = override_session
+    app_instance.dependency_overrides[session] = override_session
     return app_instance
 
 

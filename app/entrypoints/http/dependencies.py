@@ -13,6 +13,6 @@ async def verify_api_key(x_api_key: str = Header(...)) -> str:
     return x_api_key
 
 
-async def get_session() -> AsyncGenerator[AsyncSession]:
+async def session() -> AsyncGenerator[AsyncSession]:
     async with async_session() as session:
         yield session
