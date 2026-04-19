@@ -28,7 +28,7 @@ services:
 
   api:
     build:
-      context: ..
+      context: .
       dockerfile: build/Dockerfile
     command: sh -c "alembic -c alembic/alembic.ini upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports:
@@ -52,7 +52,7 @@ services:
 
   consumer:
     build:
-      context: ..
+      context: .
       dockerfile: build/Dockerfile
     command: faststream run app.entrypoints.messaging.worker:app --log-level info
     depends_on:
