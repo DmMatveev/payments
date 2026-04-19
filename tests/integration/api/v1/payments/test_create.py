@@ -29,10 +29,6 @@ PAYMENT_BODY = {
 }
 
 
-def make_headers(key: str) -> dict:
-    return {**BASE_HEADERS, "Idempotency-Key": key}
-
-
 async def get_expected_result(session: AsyncSession, idempotency_key: str) -> dict:
     result = await session.execute(
         select(PaymentModel).where(PaymentModel.idempotency_key == idempotency_key)
@@ -41,7 +37,7 @@ async def get_expected_result(session: AsyncSession, idempotency_key: str) -> di
     return {
         "payment_id": str(payment.id),
         "status": payment.status,
-        "created_at": payment.created_at.isoformat(),
+        "created_at": payment.created_at.isoformat().replace("+00:00", "Z"),
     }
 
 
@@ -54,7 +50,7 @@ async def test_case_1(db_session: AsyncSession, client: AsyncClient) -> None:
     response = await client.post(
         "/api/v1/payments",
         json=PAYMENT_BODY,
-        headers=make_headers(key),
+        headers={**BASE_HEADERS, "Idempotency-Key": key},
     )
 
     assert response.status_code == HTTPStatus.ACCEPTED, response.text
@@ -71,7 +67,7 @@ async def test_case_2(client: AsyncClient, db_session: AsyncSession) -> None:
     response = await client.post(
         "/api/v1/payments",
         json=PAYMENT_BODY,
-        headers=make_headers(key),
+        headers={**BASE_HEADERS, "Idempotency-Key": key},
     )
 
     assert response.status_code == HTTPStatus.ACCEPTED, response.text
@@ -130,6 +126,6 @@ async def test_case_6(client: AsyncClient, body_override: dict) -> None:
     response = await client.post(
         "/api/v1/payments",
         json=body,
-        headers=make_headers(str(uuid.uuid4())),
+        headers={**BASE_HEADERS, "Idempotency-Key": str(uuid.uuid4())},
     )
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY, response.text

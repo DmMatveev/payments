@@ -29,8 +29,10 @@ async def get_payment_expected_result(session: AsyncSession, payment_id: uuid.UU
         "status": payment.status,
         "idempotency_key": payment.idempotency_key,
         "webhook_url": payment.webhook_url,
-        "created_at": payment.created_at.isoformat(),
-        "processed_at": payment.processed_at.isoformat() if payment.processed_at else None,
+        "created_at": payment.created_at.isoformat().replace("+00:00", "Z"),
+        "processed_at": payment.processed_at.isoformat().replace("+00:00", "Z")
+        if payment.processed_at
+        else None,
     }
 
 
