@@ -3,7 +3,7 @@ from collections.abc import AsyncGenerator
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-from app.infrastructure.configs.config import settings
+from app.infrastructure.configs import settings
 from app.infrastructure.db.models import Base
 
 

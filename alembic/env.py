@@ -5,7 +5,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from app.infrastructure.configs.config import settings
+from app.infrastructure.configs import settings
 from app.domain.payment.entities import Base
 
 config = context.config
