@@ -7,12 +7,10 @@ from faststream.rabbit.testing import TestRabbitBroker
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entrypoints.messaging.worker import broker, payments_queue
-from infrastructure.db.models import PaymentRow
+from infrastructure.db.models import PaymentModel
 
 
 class _SessionCtx:
-    """Async context manager that yields the given session."""
-
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -28,8 +26,8 @@ def _mock_session_factory(session: AsyncSession):
 
 
 @pytest.fixture
-async def payment(db_session: AsyncSession) -> PaymentRow:
-    p = PaymentRow(
+async def payment(db_session: AsyncSession) -> PaymentModel:
+    p = PaymentModel(
         id=uuid.uuid4(),
         amount=Decimal("500.00"),
         currency="EUR",
@@ -43,24 +41,40 @@ async def payment(db_session: AsyncSession) -> PaymentRow:
     return p
 
 
+def _publish_body(payment_id: uuid.UUID, retry_count: int = 0) -> dict:
+    return {
+        "event_type": "payment.created",
+        "payment_id": str(payment_id),
+        "retry_count": retry_count,
+    }
+
+
 # ── Success ──────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
 async def test_successful_payment_updates_status(
-    db_session: AsyncSession, payment: PaymentRow
+    db_session: AsyncSession, payment: PaymentModel
 ) -> None:
     with (
-        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
-        patch("entrypoints.messaging.worker.send_webhook", new_callable=AsyncMock, return_value=True),
-        patch("random.random", return_value=0.5),
+        patch(
+            "entrypoints.messaging.worker.async_session",
+            _mock_session_factory(db_session),
+        ),
+        patch.object(
+            __import__("entrypoints.messaging.worker", fromlist=["gateway"]).gateway,
+            "charge",
+            new=AsyncMock(return_value=True),
+        ),
+        patch.object(
+            __import__("entrypoints.messaging.worker", fromlist=["notifier"]).notifier,
+            "notify",
+            new=AsyncMock(return_value=True),
+        ),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
         async with TestRabbitBroker(broker) as br:
-            await br.publish(
-                {"payment_id": str(payment.id), "retry_count": 0},
-                queue=payments_queue,
-            )
+            await br.publish(_publish_body(payment.id), queue=payments_queue)
 
     await db_session.refresh(payment)
     assert payment.status == "succeeded"
@@ -69,24 +83,25 @@ async def test_successful_payment_updates_status(
 
 @pytest.mark.asyncio
 async def test_successful_payment_calls_webhook(
-    db_session: AsyncSession, payment: PaymentRow
+    db_session: AsyncSession, payment: PaymentModel
 ) -> None:
-    mock_webhook = AsyncMock(return_value=True)
+    worker_mod = __import__("entrypoints.messaging.worker", fromlist=["notifier"])
+    mock_notify = AsyncMock(return_value=True)
 
     with (
-        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
-        patch("entrypoints.messaging.worker.send_webhook", mock_webhook),
-        patch("random.random", return_value=0.5),
+        patch(
+            "entrypoints.messaging.worker.async_session",
+            _mock_session_factory(db_session),
+        ),
+        patch.object(worker_mod.gateway, "charge", new=AsyncMock(return_value=True)),
+        patch.object(worker_mod.notifier, "notify", new=mock_notify),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
         async with TestRabbitBroker(broker) as br:
-            await br.publish(
-                {"payment_id": str(payment.id), "retry_count": 0},
-                queue=payments_queue,
-            )
+            await br.publish(_publish_body(payment.id), queue=payments_queue)
 
-    mock_webhook.assert_awaited_once()
-    url, payload = mock_webhook.call_args.args
+    mock_notify.assert_awaited_once()
+    url, payload = mock_notify.call_args.args
     assert url == payment.webhook_url
     assert payload["payment_id"] == str(payment.id)
     assert payload["status"] == "succeeded"
@@ -99,18 +114,22 @@ async def test_successful_payment_calls_webhook(
 
 @pytest.mark.asyncio
 async def test_final_failure_sets_status_failed(
-    db_session: AsyncSession, payment: PaymentRow
+    db_session: AsyncSession, payment: PaymentModel
 ) -> None:
+    worker_mod = __import__("entrypoints.messaging.worker", fromlist=["gateway"])
+
     with (
-        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
-        patch("entrypoints.messaging.worker.send_webhook", new_callable=AsyncMock, return_value=True),
-        patch("random.random", return_value=0.95),
+        patch(
+            "entrypoints.messaging.worker.async_session",
+            _mock_session_factory(db_session),
+        ),
+        patch.object(worker_mod.gateway, "charge", new=AsyncMock(return_value=False)),
+        patch.object(worker_mod.notifier, "notify", new=AsyncMock(return_value=True)),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
         async with TestRabbitBroker(broker) as br:
             await br.publish(
-                {"payment_id": str(payment.id), "retry_count": 2},
-                queue=payments_queue,
+                _publish_body(payment.id, retry_count=2), queue=payments_queue
             )
 
     await db_session.refresh(payment)
@@ -120,24 +139,27 @@ async def test_final_failure_sets_status_failed(
 
 @pytest.mark.asyncio
 async def test_final_failure_sends_webhook_with_failed_status(
-    db_session: AsyncSession, payment: PaymentRow
+    db_session: AsyncSession, payment: PaymentModel
 ) -> None:
-    mock_webhook = AsyncMock(return_value=True)
+    worker_mod = __import__("entrypoints.messaging.worker", fromlist=["notifier"])
+    mock_notify = AsyncMock(return_value=True)
 
     with (
-        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
-        patch("entrypoints.messaging.worker.send_webhook", mock_webhook),
-        patch("random.random", return_value=0.95),
+        patch(
+            "entrypoints.messaging.worker.async_session",
+            _mock_session_factory(db_session),
+        ),
+        patch.object(worker_mod.gateway, "charge", new=AsyncMock(return_value=False)),
+        patch.object(worker_mod.notifier, "notify", new=mock_notify),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
         async with TestRabbitBroker(broker) as br:
             await br.publish(
-                {"payment_id": str(payment.id), "retry_count": 2},
-                queue=payments_queue,
+                _publish_body(payment.id, retry_count=2), queue=payments_queue
             )
 
-    mock_webhook.assert_awaited_once()
-    _, payload = mock_webhook.call_args.args
+    mock_notify.assert_awaited_once()
+    _, payload = mock_notify.call_args.args
     assert payload["status"] == "failed"
 
 
@@ -146,35 +168,30 @@ async def test_final_failure_sends_webhook_with_failed_status(
 
 @pytest.mark.asyncio
 async def test_retry_keeps_status_pending(
-    db_session: AsyncSession, payment: PaymentRow
+    db_session: AsyncSession, payment: PaymentModel
 ) -> None:
-    """On failure with retries left, payment stays pending (message republished)."""
+    """On non-final failure, payment stays pending; message is republished and then succeeds."""
+    worker_mod = __import__("entrypoints.messaging.worker", fromlist=["gateway"])
     call_count = 0
-    original_random = None
 
-    def _controlled_random():
+    async def _charge(_p):
         nonlocal call_count
         call_count += 1
-        # First call fails, subsequent calls succeed (for republished message)
-        if call_count == 1:
-            return 0.95  # >= 0.9 → failure
-        return 0.1  # < 0.9 → success
+        return call_count > 1
 
     with (
-        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
-        patch("entrypoints.messaging.worker.send_webhook", new_callable=AsyncMock, return_value=True),
-        patch("random.random", side_effect=_controlled_random),
-        patch("random.uniform", return_value=0.1),
+        patch(
+            "entrypoints.messaging.worker.async_session",
+            _mock_session_factory(db_session),
+        ),
+        patch.object(worker_mod.gateway, "charge", new=AsyncMock(side_effect=_charge)),
+        patch.object(worker_mod.notifier, "notify", new=AsyncMock(return_value=True)),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
         async with TestRabbitBroker(broker) as br:
-            await br.publish(
-                {"payment_id": str(payment.id), "retry_count": 0},
-                queue=payments_queue,
-            )
+            await br.publish(_publish_body(payment.id), queue=payments_queue)
 
     await db_session.refresh(payment)
-    # After first failure + republish + success on second attempt
     assert payment.status == "succeeded"
 
 
@@ -185,15 +202,16 @@ async def test_retry_keeps_status_pending(
 async def test_nonexistent_payment_does_not_crash(
     db_session: AsyncSession,
 ) -> None:
+    worker_mod = __import__("entrypoints.messaging.worker", fromlist=["gateway"])
+
     with (
-        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
-        patch("random.random", return_value=0.5),
-        patch("random.uniform", return_value=0.1),
+        patch(
+            "entrypoints.messaging.worker.async_session",
+            _mock_session_factory(db_session),
+        ),
+        patch.object(worker_mod.gateway, "charge", new=AsyncMock(return_value=True)),
+        patch.object(worker_mod.notifier, "notify", new=AsyncMock(return_value=True)),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
         async with TestRabbitBroker(broker) as br:
-            await br.publish(
-                {"payment_id": str(uuid.uuid4()), "retry_count": 0},
-                queue=payments_queue,
-            )
-    # No exception — handler gracefully handles missing payment
+            await br.publish(_publish_body(uuid.uuid4()), queue=payments_queue)

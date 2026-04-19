@@ -5,7 +5,7 @@ import factory
 import factory.fuzzy
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from infrastructure.db.models import OutboxRow, PaymentRow
+from infrastructure.db.models import PaymentModel
 
 T = TypeVar("T")
 
@@ -42,9 +42,9 @@ class BaseFactory(factory.alchemy.SQLAlchemyModelFactory, Generic[T]):
         return [await cls.create(**kwargs) for _ in range(size)]
 
 
-class PaymentFactory(BaseFactory[PaymentRow]):
+class PaymentFactory(BaseFactory[PaymentModel]):
     class Meta:
-        model = PaymentRow
+        model = PaymentModel
 
     id = factory.LazyFunction(uuid.uuid4)
     amount = factory.Faker("pydecimal", left_digits=4, right_digits=2, positive=True)
@@ -56,10 +56,3 @@ class PaymentFactory(BaseFactory[PaymentRow]):
     webhook_url = factory.Faker("url")
 
 
-class OutboxMessageFactory(BaseFactory[OutboxRow]):
-    class Meta:
-        model = OutboxRow
-
-    id = factory.LazyFunction(uuid.uuid4)
-    payload = factory.LazyFunction(lambda: {"payment_id": str(uuid.uuid4()), "retry_count": 0})
-    published = False

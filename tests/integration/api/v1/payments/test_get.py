@@ -5,7 +5,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from infrastructure.db.models import PaymentRow
+from infrastructure.db.models import PaymentModel
 from tests.factories import PaymentFactory
 
 # Тест-кейсы:
@@ -19,7 +19,7 @@ HEADERS = {"X-API-Key": API_KEY}
 
 
 async def get_payment_expected_result(session: AsyncSession, payment_id: uuid.UUID) -> dict:
-    payment = await session.get(PaymentRow, payment_id)
+    payment = await session.get(PaymentModel, payment_id)
     return {
         "id": str(payment.id),
         "amount": str(payment.amount),
@@ -36,7 +36,8 @@ async def get_payment_expected_result(session: AsyncSession, payment_id: uuid.UU
 
 @pytest.mark.asyncio
 async def test_case_1(client: AsyncClient, db_session: AsyncSession) -> None:
-    """Получение платежа — возвращаются все поля."""
+    """1. Получение платежа — возвращаются все поля."""
+
     payment = await PaymentFactory.create(
         amount=250,
         currency="USD",
@@ -50,13 +51,13 @@ async def test_case_1(client: AsyncClient, db_session: AsyncSession) -> None:
     )
 
     assert response.status_code == HTTPStatus.OK, response.text
-    expected = await get_payment_expected_result(db_session, payment.id)
-    assert response.json() == expected
+    assert response.json() == await get_payment_expected_result(db_session, payment.id)
 
 
 @pytest.mark.asyncio
 async def test_case_2(client: AsyncClient) -> None:
-    """Платеж не найден — 404."""
+    """2. Платеж не найден — 404."""
+
     response = await client.get(
         f"/api/v1/payments/{uuid.uuid4()}",
         headers=HEADERS,
@@ -66,7 +67,8 @@ async def test_case_2(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_case_3(client: AsyncClient) -> None:
-    """Невалидный UUID — 422."""
+    """3. Невалидный UUID — 422."""
+
     response = await client.get(
         "/api/v1/payments/not-a-uuid",
         headers=HEADERS,
@@ -76,6 +78,8 @@ async def test_case_3(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_case_4(client: AsyncClient) -> None:
-    """Запрос без X-API-Key — 422."""
+    """4. Запрос без X-API-Key — 422."""
+
     response = await client.get(f"/api/v1/payments/{uuid.uuid4()}")
+
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY, response.text
