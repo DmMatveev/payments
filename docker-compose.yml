@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: payments
+      POSTGRES_USER: payments
+      POSTGRES_PASSWORD: payments
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payments"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    command: sh -c "alembic upgrade head && uvicorn app.entrypoints.http.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      APP_DATABASE_URL: postgresql+asyncpg://payments:payments@postgres:5432/payments
+      APP_RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      APP_API_KEY: secret-api-key
+
+  consumer:
+    build: .
+    command: faststream run app.entrypoints.messaging.worker:app --log-level info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      APP_DATABASE_URL: postgresql+asyncpg://payments:payments@postgres:5432/payments
+      APP_RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+
+volumes:
+  pgdata:
