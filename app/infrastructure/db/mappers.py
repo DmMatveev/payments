@@ -1,9 +1,9 @@
 from decimal import Decimal
 
-from app.domain.payment.enums import Currency, PaymentStatus
-from app.domain.payment.payment import Payment
-from app.domain.payment.value_objects import IdempotencyKey, Money
-from app.infrastructure.db.models import PaymentRow
+from domain.payment.enums import Currency, PaymentStatus
+from domain.payment.payment import Payment
+from domain.payment.value_objects import IdempotencyKey, Money
+from infrastructure.db.models import PaymentRow
 
 
 def row_to_payment(row: PaymentRow) -> Payment:

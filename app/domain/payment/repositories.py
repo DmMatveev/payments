@@ -1,8 +1,8 @@
 import uuid
 from typing import Protocol, runtime_checkable
 
-from app.domain.payment.payment import Payment
-from app.domain.payment.value_objects import IdempotencyKey
+from domain.payment.payment import Payment
+from domain.payment.value_objects import IdempotencyKey
 
 
 @runtime_checkable

@@ -5,8 +5,8 @@ import logging
 import aio_pika
 from sqlalchemy import select
 
-from app.infrastructure.configs import async_session, settings
-from app.infrastructure.db.models import OutboxRow
+from infrastructure.configs import async_session, settings
+from infrastructure.db.models import OutboxRow
 
 logger = logging.getLogger(__name__)
 

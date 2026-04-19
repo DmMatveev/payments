@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.domain.payment.enums import Currency
+from domain.payment.enums import Currency
 
 
 class CreatePaymentRequest(BaseModel):

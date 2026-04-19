@@ -2,11 +2,11 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.ports.unit_of_work import UnitOfWork
-from app.infrastructure.adapters.repositories.outbox_repository_pg import (
+from application.ports.unit_of_work import UnitOfWork
+from infrastructure.adapters.repositories.outbox_repository_pg import (
     PostgresOutboxRepository,
 )
-from app.infrastructure.adapters.repositories.payment_repository_pg import (
+from infrastructure.adapters.repositories.payment_repository_pg import (
     PostgresPaymentRepository,
 )
 

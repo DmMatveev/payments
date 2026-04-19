@@ -8,8 +8,8 @@ from faststream import FastStream
 from faststream.rabbit import RabbitBroker, RabbitMessage, RabbitQueue
 from sqlalchemy import select
 
-from app.infrastructure.configs import async_session, settings
-from app.infrastructure.db.models import PaymentRow
+from infrastructure.configs import async_session, settings
+from infrastructure.db.models import PaymentRow
 
 logger = logging.getLogger(__name__)
 

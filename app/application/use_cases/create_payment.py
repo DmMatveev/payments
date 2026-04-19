@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from app.application.ports.unit_of_work import UnitOfWork
-from app.domain.payment.enums import Currency
-from app.domain.payment.payment import Payment
-from app.domain.payment.value_objects import IdempotencyKey, Money
+from application.ports.unit_of_work import UnitOfWork
+from domain.payment.enums import Currency
+from domain.payment.payment import Payment
+from domain.payment.value_objects import IdempotencyKey, Money
 
 
 @dataclass(frozen=True)

@@ -6,8 +6,8 @@ import pytest
 from faststream.rabbit.testing import TestRabbitBroker
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.entrypoints.messaging.worker import broker, payments_queue
-from app.infrastructure.db.models import PaymentRow
+from entrypoints.messaging.worker import broker, payments_queue
+from infrastructure.db.models import PaymentRow
 
 
 class _SessionCtx:
@@ -51,8 +51,8 @@ async def test_successful_payment_updates_status(
     db_session: AsyncSession, payment: PaymentRow
 ) -> None:
     with (
-        patch("app.entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
-        patch("app.entrypoints.messaging.worker.send_webhook", new_callable=AsyncMock, return_value=True),
+        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
+        patch("entrypoints.messaging.worker.send_webhook", new_callable=AsyncMock, return_value=True),
         patch("random.random", return_value=0.5),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
@@ -74,8 +74,8 @@ async def test_successful_payment_calls_webhook(
     mock_webhook = AsyncMock(return_value=True)
 
     with (
-        patch("app.entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
-        patch("app.entrypoints.messaging.worker.send_webhook", mock_webhook),
+        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
+        patch("entrypoints.messaging.worker.send_webhook", mock_webhook),
         patch("random.random", return_value=0.5),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
@@ -102,8 +102,8 @@ async def test_final_failure_sets_status_failed(
     db_session: AsyncSession, payment: PaymentRow
 ) -> None:
     with (
-        patch("app.entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
-        patch("app.entrypoints.messaging.worker.send_webhook", new_callable=AsyncMock, return_value=True),
+        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
+        patch("entrypoints.messaging.worker.send_webhook", new_callable=AsyncMock, return_value=True),
         patch("random.random", return_value=0.95),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
@@ -125,8 +125,8 @@ async def test_final_failure_sends_webhook_with_failed_status(
     mock_webhook = AsyncMock(return_value=True)
 
     with (
-        patch("app.entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
-        patch("app.entrypoints.messaging.worker.send_webhook", mock_webhook),
+        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
+        patch("entrypoints.messaging.worker.send_webhook", mock_webhook),
         patch("random.random", return_value=0.95),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
@@ -161,8 +161,8 @@ async def test_retry_keeps_status_pending(
         return 0.1  # < 0.9 → success
 
     with (
-        patch("app.entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
-        patch("app.entrypoints.messaging.worker.send_webhook", new_callable=AsyncMock, return_value=True),
+        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
+        patch("entrypoints.messaging.worker.send_webhook", new_callable=AsyncMock, return_value=True),
         patch("random.random", side_effect=_controlled_random),
         patch("random.uniform", return_value=0.1),
         patch("asyncio.sleep", new_callable=AsyncMock),
@@ -186,7 +186,7 @@ async def test_nonexistent_payment_does_not_crash(
     db_session: AsyncSession,
 ) -> None:
     with (
-        patch("app.entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
+        patch("entrypoints.messaging.worker.async_session", _mock_session_factory(db_session)),
         patch("random.random", return_value=0.5),
         patch("random.uniform", return_value=0.1),
         patch("asyncio.sleep", new_callable=AsyncMock),

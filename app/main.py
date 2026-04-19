@@ -6,10 +6,10 @@ from fastapi import FastAPI, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.entrypoints.http.dependencies import get_session
-from app.entrypoints.http.exception_handlers import register_exception_handlers
-from app.entrypoints.http.v1 import router as api_v1_router
-from app.infrastructure.outbox_worker import outbox_worker
+from entrypoints.http.dependencies import get_session
+from entrypoints.http.exception_handlers import register_exception_handlers
+from entrypoints.http.v1 import router as api_v1_router
+from infrastructure.outbox_worker import outbox_worker
 
 
 

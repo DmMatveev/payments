@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.domain.payment.exceptions import DuplicatePaymentError, PaymentNotFoundError
+from domain.payment.exceptions import DuplicatePaymentError, PaymentNotFoundError
 
 
 async def payment_not_found_handler(_: Request, exc: PaymentNotFoundError) -> JSONResponse:

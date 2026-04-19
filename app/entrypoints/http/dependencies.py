@@ -3,7 +3,7 @@ from collections.abc import AsyncGenerator
 from fastapi import Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.configs import async_session, settings
+from infrastructure.configs import async_session, settings
 
 
 async def verify_api_key(x_api_key: str = Header(...)) -> str:

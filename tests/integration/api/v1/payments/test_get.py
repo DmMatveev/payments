@@ -5,7 +5,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.db.models import PaymentRow
+from infrastructure.db.models import PaymentRow
 from tests.factories import PaymentFactory
 
 # Тест-кейсы:

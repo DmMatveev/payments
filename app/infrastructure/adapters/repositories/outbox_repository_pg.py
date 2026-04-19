@@ -3,8 +3,8 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.ports.outbox import OutboxRepository
-from app.infrastructure.db.models import OutboxRow
+from application.ports.outbox import OutboxRepository
+from infrastructure.db.models import OutboxRow
 
 
 class PostgresOutboxRepository(OutboxRepository):

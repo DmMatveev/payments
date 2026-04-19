@@ -1,8 +1,8 @@
 import uuid
 
-from app.application.ports.unit_of_work import UnitOfWork
-from app.domain.payment.exceptions import PaymentNotFoundError
-from app.domain.payment.payment import Payment
+from application.ports.unit_of_work import UnitOfWork
+from domain.payment.exceptions import PaymentNotFoundError
+from domain.payment.payment import Payment
 
 
 class GetPaymentUseCase:

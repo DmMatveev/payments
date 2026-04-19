@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
-from app.domain.payment.enums import Currency
-from app.domain.payment.exceptions import InvalidMoneyError
+from domain.payment.enums import Currency
+from domain.payment.exceptions import InvalidMoneyError
 
 
 @dataclass(frozen=True)

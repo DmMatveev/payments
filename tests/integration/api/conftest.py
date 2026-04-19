@@ -6,9 +6,9 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import tests.factories
-from app.entrypoints.http.dependencies import get_session
-from app.entrypoints.http.exception_handlers import register_exception_handlers
-from app.entrypoints.http.v1 import router
+from entrypoints.http.dependencies import get_session
+from entrypoints.http.exception_handlers import register_exception_handlers
+from entrypoints.http.v1 import router
 
 
 @pytest.fixture

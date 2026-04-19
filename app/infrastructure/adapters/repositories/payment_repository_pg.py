@@ -3,15 +3,15 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.payment.payment import Payment
-from app.domain.payment.repositories import PaymentRepository
-from app.domain.payment.value_objects import IdempotencyKey
-from app.infrastructure.db.mappers import (
+from domain.payment.payment import Payment
+from domain.payment.repositories import PaymentRepository
+from domain.payment.value_objects import IdempotencyKey
+from infrastructure.db.mappers import (
     apply_payment_to_row,
     payment_to_row,
     row_to_payment,
 )
-from app.infrastructure.db.models import PaymentRow
+from infrastructure.db.models import PaymentRow
 
 
 class PostgresPaymentRepository(PaymentRepository):

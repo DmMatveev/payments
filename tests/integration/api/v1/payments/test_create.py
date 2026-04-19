@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.db.models import OutboxRow, PaymentRow
+from infrastructure.db.models import OutboxRow, PaymentRow
 
 # Тест-кейсы:
 # 1. Успешное создание платежа — возвращается 202 с payment_id, status, created_at

@@ -3,11 +3,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header
 
-from app.application.use_cases.create_payment import CreatePaymentData, CreatePaymentUseCase
-from app.application.use_cases.get_payment import GetPaymentUseCase
-from app.domain.payment.payment import Payment
-from app.entrypoints.http.v1.payments.dependencies import get_create_payment_use_case, get_get_payment_use_case
-from app.entrypoints.http.v1.payments.schemas import CreatePaymentRequest, CreatePaymentResponse, PaymentResponse
+from application.use_cases.create_payment import CreatePaymentData, CreatePaymentUseCase
+from application.use_cases.get_payment import GetPaymentUseCase
+from domain.payment.payment import Payment
+from entrypoints.http.v1.payments.dependencies import get_create_payment_use_case, get_get_payment_use_case
+from entrypoints.http.v1.payments.schemas import CreatePaymentRequest, CreatePaymentResponse, PaymentResponse
 
 router = APIRouter(
     prefix="/payments",

@@ -5,7 +5,7 @@ import factory
 import factory.fuzzy
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.db.models import OutboxRow, PaymentRow
+from infrastructure.db.models import OutboxRow, PaymentRow
 
 T = TypeVar("T")
 

@@ -3,9 +3,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-from app.domain.payment.enums import PaymentStatus
-from app.domain.payment.exceptions import InvalidPaymentStateError
-from app.domain.payment.value_objects import IdempotencyKey, Money
+from domain.payment.enums import PaymentStatus
+from domain.payment.exceptions import InvalidPaymentStateError
+from domain.payment.value_objects import IdempotencyKey, Money
 
 
 def _utcnow() -> datetime:

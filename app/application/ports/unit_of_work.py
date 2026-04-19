@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Self
 
-from app.application.ports.outbox import OutboxRepository
-from app.domain.payment.repositories import PaymentRepository
+from application.ports.outbox import OutboxRepository
+from domain.payment.repositories import PaymentRepository
 
 
 class UnitOfWork(ABC):
