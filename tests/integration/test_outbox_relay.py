@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.adapters.rabbit_event_publisher import PaymentEventPayload
 from infrastructure.db.models import OutboxModel
-from infrastructure.outbox_relay import _publish_next
+from infrastructure.outbox_relay import publish_next_event
+
+# Тест-кейсы:
+# 1. Публикует событие и удаляет запись из outbox
+# 2. Возвращает False при пустой таблице
+# 3. Публикует самое старое событие по created_at
 
 
 class _SessionCtx:
@@ -35,9 +40,9 @@ def _make_outbox(event_type: str = "payment.created") -> OutboxModel:
 
 
 @pytest.mark.asyncio
-async def test_publish_next_publishes_oldest_and_deletes_it(
-    db_session: AsyncSession,
-) -> None:
+async def test_case_1(db_session: AsyncSession) -> None:
+    """1. Публикует событие и удаляет запись из outbox."""
+
     msg = _make_outbox("payment.created")
     db_session.add(msg)
     await db_session.flush()
@@ -48,39 +53,37 @@ async def test_publish_next_publishes_oldest_and_deletes_it(
         "infrastructure.outbox_relay.async_session",
         _mock_session_factory(db_session),
     ):
-        result = await _publish_next(publisher)
+        result = await publish_next_event(publisher)
 
     assert result is True
     publisher.publish.assert_awaited_once_with(
         PaymentEventPayload.model_validate(msg.payload)
     )
 
-    remaining = (await db_session.execute(
-        OutboxModel.__table__.select()
-    )).all()
+    remaining = (await db_session.execute(OutboxModel.__table__.select())).all()
     assert remaining == []
 
 
 @pytest.mark.asyncio
-async def test_publish_next_returns_false_when_table_empty(
-    db_session: AsyncSession,
-) -> None:
+async def test_case_2(db_session: AsyncSession) -> None:
+    """2. Возвращает False при пустой таблице."""
+
     publisher = AsyncMock()
 
     with patch(
         "infrastructure.outbox_relay.async_session",
         _mock_session_factory(db_session),
     ):
-        result = await _publish_next(publisher)
+        result = await publish_next_event(publisher)
 
     assert result is False
     publisher.publish.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_publish_next_picks_oldest_by_created_at(
-    db_session: AsyncSession,
-) -> None:
+async def test_case_3(db_session: AsyncSession) -> None:
+    """3. Публикует самое старое событие по created_at."""
+
     older = _make_outbox("payment.created")
     newer = _make_outbox("payment.succeeded")
     db_session.add(older)
@@ -94,7 +97,7 @@ async def test_publish_next_picks_oldest_by_created_at(
         "infrastructure.outbox_relay.async_session",
         _mock_session_factory(db_session),
     ):
-        result = await _publish_next(publisher)
+        result = await publish_next_event(publisher)
 
     assert result is True
     publisher.publish.assert_awaited_once_with(

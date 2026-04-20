@@ -35,14 +35,14 @@ async def run_outbox_relay() -> None:
 
     try:
         while True:
-            if not await _publish_next(publisher):
+            if not await publish_next_event(publisher):
                 await asyncio.sleep(POLL_INTERVAL_SECONDS)
     except asyncio.CancelledError:
         await connection.close()
         raise
 
 
-async def _publish_next(publisher: RabbitEventPublisher) -> bool:
+async def publish_next_event(publisher: RabbitEventPublisher) -> bool:
     async with async_session() as session:
         result = await session.execute(
             select(OutboxModel)
