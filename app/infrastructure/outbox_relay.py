@@ -1,8 +1,9 @@
 import asyncio
 import logging
+from datetime import datetime, timedelta, timezone
 
 import aio_pika
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.adapters.rabbit_event_publisher import (
@@ -11,6 +12,8 @@ from infrastructure.adapters.rabbit_event_publisher import (
 )
 from infrastructure.configs import async_session, settings
 from infrastructure.db.models import OutboxModel
+
+LOCK_TIMEOUT = timedelta(minutes=1)
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +50,15 @@ async def run_outbox_relay() -> None:
 async def publish_next_event(
     session: AsyncSession, publisher: RabbitEventPublisher
 ) -> bool:
+    cutoff = datetime.now(timezone.utc) - LOCK_TIMEOUT
     result = await session.execute(
         select(OutboxModel)
+        .where(
+            or_(
+                OutboxModel.locked_at.is_(None),
+                OutboxModel.locked_at < cutoff,
+            )
+        )
         .order_by(OutboxModel.created_at)
         .limit(1)
         .with_for_update(skip_locked=True)
@@ -56,6 +66,9 @@ async def publish_next_event(
     row = result.scalar_one_or_none()
     if row is None:
         return False
+
+    row.locked_at = datetime.now(timezone.utc)
+    await session.flush()
 
     await publisher.publish(PaymentEventPayload.model_validate(row.payload))
     await session.delete(row)

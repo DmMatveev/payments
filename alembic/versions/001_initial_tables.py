@@ -43,6 +43,7 @@ def upgrade() -> None:
         sa.Column("aggregate_id", UUID(as_uuid=True), nullable=False),
         sa.Column("event_type", sa.String(64), nullable=False),
         sa.Column("payload", sa.JSON(), nullable=False),
+        sa.Column("locked_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),

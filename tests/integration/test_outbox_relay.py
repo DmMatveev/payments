@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
 import pytest
@@ -11,7 +12,7 @@ from tests.factories import OutboxFactory
 # Тест-кейсы:
 # 1. Публикует событие и удаляет запись из outbox
 # 2. Возвращает False при пустой таблице
-# 3. Публикует самое старое событие по created_at
+# 3. Повторно обрабатывает запись, залоченную больше минуты назад
 
 
 @pytest.mark.asyncio
@@ -19,8 +20,8 @@ async def test_case_1(db_session: AsyncSession) -> None:
     """1. Публикует событие и удаляет запись из outbox."""
 
     msg = await OutboxFactory.create(event_type="payment.created")
-
     publisher = AsyncMock()
+
     result = await publish_next_event(db_session, publisher)
 
     assert result is True
@@ -37,6 +38,7 @@ async def test_case_2(db_session: AsyncSession) -> None:
     """2. Возвращает False при пустой таблице."""
 
     publisher = AsyncMock()
+
     result = await publish_next_event(db_session, publisher)
 
     assert result is False
@@ -45,15 +47,21 @@ async def test_case_2(db_session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_case_3(db_session: AsyncSession) -> None:
-    """3. Публикует самое старое событие по created_at."""
+    """3. Повторно обрабатывает запись, залоченную больше минуты назад."""
 
-    older = await OutboxFactory.create(event_type="payment.created")
-    await OutboxFactory.create(event_type="payment.succeeded")
+    stale = await OutboxFactory.create(
+        event_type="payment.created",
+        locked_at=datetime.now(timezone.utc) - timedelta(minutes=2),
+    )
+    await OutboxFactory.create(
+        event_type="payment.created",
+        locked_at=datetime.now(timezone.utc) - timedelta(seconds=30),
+    )
 
     publisher = AsyncMock()
     result = await publish_next_event(db_session, publisher)
 
     assert result is True
     publisher.publish.assert_awaited_once_with(
-        PaymentEventPayload(event_type=older.event_type, payment_id=str(older.aggregate_id))
+        PaymentEventPayload(event_type=stale.event_type, payment_id=str(stale.aggregate_id))
     )
