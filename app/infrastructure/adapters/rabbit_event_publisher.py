@@ -1,10 +1,10 @@
-import json
-from typing import TypedDict
-
 import aio_pika
+from pydantic import BaseModel, ConfigDict
 
 
-class PaymentEventPayload(TypedDict):
+class PaymentEventPayload(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     event_type: str
     payment_id: str
 
@@ -17,7 +17,7 @@ class RabbitEventPublisher:
     async def publish(self, payload: PaymentEventPayload) -> None:
         await self._channel.default_exchange.publish(
             aio_pika.Message(
-                body=json.dumps(payload).encode(),
+                body=payload.model_dump_json().encode(),
                 delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
             ),
             routing_key=self._routing_key,

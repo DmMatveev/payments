@@ -4,7 +4,10 @@ import logging
 import aio_pika
 from sqlalchemy import select
 
-from infrastructure.adapters.rabbit_event_publisher import RabbitEventPublisher
+from infrastructure.adapters.rabbit_event_publisher import (
+    PaymentEventPayload,
+    RabbitEventPublisher,
+)
 from infrastructure.configs import async_session, settings
 from infrastructure.db.models import OutboxModel
 
@@ -51,7 +54,7 @@ async def _publish_next(publisher: RabbitEventPublisher) -> bool:
         if row is None:
             return False
 
-        await publisher.publish(row.payload)
+        await publisher.publish(PaymentEventPayload.model_validate(row.payload))
         await session.delete(row)
         await session.commit()
         return True

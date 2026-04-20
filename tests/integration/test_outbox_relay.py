@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from infrastructure.adapters.rabbit_event_publisher import PaymentEventPayload
 from infrastructure.db.models import OutboxModel
 from infrastructure.outbox_relay import _publish_next
 
@@ -50,7 +51,9 @@ async def test_publish_next_publishes_oldest_and_deletes_it(
         result = await _publish_next(publisher)
 
     assert result is True
-    publisher.publish.assert_awaited_once_with(msg.payload)
+    publisher.publish.assert_awaited_once_with(
+        PaymentEventPayload.model_validate(msg.payload)
+    )
 
     remaining = (await db_session.execute(
         OutboxModel.__table__.select()
@@ -94,4 +97,6 @@ async def test_publish_next_picks_oldest_by_created_at(
         result = await _publish_next(publisher)
 
     assert result is True
-    publisher.publish.assert_awaited_once_with(older.payload)
+    publisher.publish.assert_awaited_once_with(
+        PaymentEventPayload.model_validate(older.payload)
+    )
