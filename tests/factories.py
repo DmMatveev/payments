@@ -5,7 +5,7 @@ import factory
 import factory.fuzzy
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from infrastructure.db.models import PaymentModel
+from infrastructure.db.models import OutboxModel, PaymentModel
 
 T = TypeVar("T")
 
@@ -54,5 +54,17 @@ class PaymentFactory(BaseFactory[PaymentModel]):
     status = "pending"
     idempotency_key = factory.LazyFunction(lambda: str(uuid.uuid4()))
     webhook_url = factory.Faker("url")
+
+
+class OutboxFactory(BaseFactory[OutboxModel]):
+    class Meta:
+        model = OutboxModel
+
+    id = factory.LazyFunction(uuid.uuid4)
+    aggregate_id = factory.LazyFunction(uuid.uuid4)
+    event_type = "payment.created"
+    payload = factory.LazyAttribute(
+        lambda o: {"event_type": o.event_type, "payment_id": str(o.aggregate_id)}
+    )
 
 

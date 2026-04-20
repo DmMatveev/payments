@@ -3,6 +3,7 @@ import logging
 
 import aio_pika
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.adapters.rabbit_event_publisher import (
     PaymentEventPayload,
@@ -35,26 +36,28 @@ async def run_outbox_relay() -> None:
 
     try:
         while True:
-            if not await publish_next_event(publisher):
-                await asyncio.sleep(POLL_INTERVAL_SECONDS)
+            async with async_session() as session:
+                if not await publish_next_event(session, publisher):
+                    await asyncio.sleep(POLL_INTERVAL_SECONDS)
     except asyncio.CancelledError:
         await connection.close()
         raise
 
 
-async def publish_next_event(publisher: RabbitEventPublisher) -> bool:
-    async with async_session() as session:
-        result = await session.execute(
-            select(OutboxModel)
-            .order_by(OutboxModel.created_at)
-            .limit(1)
-            .with_for_update(skip_locked=True)
-        )
-        row = result.scalar_one_or_none()
-        if row is None:
-            return False
+async def publish_next_event(
+    session: AsyncSession, publisher: RabbitEventPublisher
+) -> bool:
+    result = await session.execute(
+        select(OutboxModel)
+        .order_by(OutboxModel.created_at)
+        .limit(1)
+        .with_for_update(skip_locked=True)
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        return False
 
-        await publisher.publish(PaymentEventPayload.model_validate(row.payload))
-        await session.delete(row)
-        await session.commit()
-        return True
+    await publisher.publish(PaymentEventPayload.model_validate(row.payload))
+    await session.delete(row)
+    await session.commit()
+    return True

@@ -35,6 +35,8 @@ dlq = RabbitQueue(DLQ_NAME, durable=True)
 
 notifier = HttpWebhookNotifier()
 
+# TODO
+
 
 @broker.subscriber(payments_queue)
 async def process_payment(body: dict, msg: RabbitMessage) -> None:

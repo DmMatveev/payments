@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import tests.factories
 from entrypoints.http.dependencies import get_session
 from entrypoints.http.exception_handlers import register_exception_handlers
 from entrypoints.http.v1 import router
@@ -31,12 +30,3 @@ async def client(app: FastAPI) -> AsyncGenerator[AsyncClient]:
         base_url="http://test",
     ) as c:
         yield c
-
-
-@pytest.fixture(autouse=True)
-async def _setup_factories(db_session: AsyncSession):
-    tests.factories._current_session = db_session
-    tests.factories.BaseFactory._current_session = db_session
-    yield
-    tests.factories._current_session = None
-    tests.factories.BaseFactory._current_session = None
