@@ -28,8 +28,6 @@ def upgrade() -> None:
         sa.Column("status", sa.String(20), nullable=False, server_default="pending"),
         sa.Column("idempotency_key", sa.String(255), unique=True, nullable=False),
         sa.Column("webhook_url", sa.Text(), nullable=False),
-        sa.Column("pending_event", sa.String(64), nullable=True),
-        sa.Column("pending_event_locked_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -39,9 +37,24 @@ def upgrade() -> None:
         sa.Column("processed_at", sa.DateTime(timezone=True), nullable=True),
     )
 
-    op.create_index("ix_payments_pending_event", "payments", ["pending_event"])
+    op.create_table(
+        "outbox",
+        sa.Column("id", UUID(as_uuid=True), primary_key=True),
+        sa.Column("aggregate_id", UUID(as_uuid=True), nullable=False),
+        sa.Column("event_type", sa.String(64), nullable=False),
+        sa.Column("payload", sa.JSON(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+    )
+
+    op.create_index("ix_outbox_created_at", "outbox", ["created_at"])
 
 
 def downgrade() -> None:
-    op.drop_index("ix_payments_pending_event", table_name="payments")
+    op.drop_index("ix_outbox_created_at", table_name="outbox")
+    op.drop_table("outbox")
     op.drop_table("payments")

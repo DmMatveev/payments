@@ -1,29 +1,36 @@
-from dataclasses import dataclass
 from decimal import Decimal
+
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from domain.payment.enums import Currency
 from domain.payment.exceptions import InvalidIdempotencyKeyError, InvalidMoneyError
 
 
-@dataclass(frozen=True)
-class Money:
+class Money(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     amount: Decimal
     currency: Currency
 
-    def __post_init__(self) -> None:
-        if not isinstance(self.amount, Decimal):
-            raise InvalidMoneyError("amount must be Decimal")
-        if self.amount <= 0:
+    @field_validator("amount")
+    @classmethod
+    def _validate_amount(cls, value: Decimal) -> Decimal:
+        if value <= 0:
             raise InvalidMoneyError("amount must be positive")
+        return value
 
 
-@dataclass(frozen=True)
-class IdempotencyKey:
+class IdempotencyKey(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     value: str
 
-    def __post_init__(self) -> None:
-        if not self.value or not self.value.strip():
+    @field_validator("value")
+    @classmethod
+    def _validate_value(cls, value: str) -> str:
+        if not value or not value.strip():
             raise InvalidIdempotencyKeyError("idempotency key must be non-empty")
+        return value
 
     def __str__(self) -> str:
         return self.value

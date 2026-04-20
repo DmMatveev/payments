@@ -61,11 +61,7 @@ async def test_successful_payment_updates_status(
             "entrypoints.messaging.worker.async_session",
             _mock_session_factory(db_session),
         ),
-        patch.object(
-            __import__("entrypoints.messaging.worker", fromlist=["gateway"]).gateway,
-            "charge",
-            new=AsyncMock(return_value=True),
-        ),
+        patch("random.random", return_value=0.0),
         patch.object(
             __import__("entrypoints.messaging.worker", fromlist=["notifier"]).notifier,
             "notify",
@@ -93,7 +89,7 @@ async def test_successful_payment_calls_webhook(
             "entrypoints.messaging.worker.async_session",
             _mock_session_factory(db_session),
         ),
-        patch.object(worker_mod.gateway, "charge", new=AsyncMock(return_value=True)),
+        patch("random.random", return_value=0.0),
         patch.object(worker_mod.notifier, "notify", new=mock_notify),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
@@ -116,14 +112,14 @@ async def test_successful_payment_calls_webhook(
 async def test_final_failure_sets_status_failed(
     db_session: AsyncSession, payment: PaymentModel
 ) -> None:
-    worker_mod = __import__("entrypoints.messaging.worker", fromlist=["gateway"])
+    worker_mod = __import__("entrypoints.messaging.worker", fromlist=["notifier"])
 
     with (
         patch(
             "entrypoints.messaging.worker.async_session",
             _mock_session_factory(db_session),
         ),
-        patch.object(worker_mod.gateway, "charge", new=AsyncMock(return_value=False)),
+        patch("random.random", return_value=1.0),
         patch.object(worker_mod.notifier, "notify", new=AsyncMock(return_value=True)),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
@@ -149,7 +145,7 @@ async def test_final_failure_sends_webhook_with_failed_status(
             "entrypoints.messaging.worker.async_session",
             _mock_session_factory(db_session),
         ),
-        patch.object(worker_mod.gateway, "charge", new=AsyncMock(return_value=False)),
+        patch("random.random", return_value=1.0),
         patch.object(worker_mod.notifier, "notify", new=mock_notify),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
@@ -171,20 +167,20 @@ async def test_retry_keeps_status_pending(
     db_session: AsyncSession, payment: PaymentModel
 ) -> None:
     """On non-final failure, payment stays pending; message is republished and then succeeds."""
-    worker_mod = __import__("entrypoints.messaging.worker", fromlist=["gateway"])
+    worker_mod = __import__("entrypoints.messaging.worker", fromlist=["notifier"])
     call_count = 0
 
-    async def _charge(_p):
+    def _random():
         nonlocal call_count
         call_count += 1
-        return call_count > 1
+        return 1.0 if call_count == 1 else 0.0
 
     with (
         patch(
             "entrypoints.messaging.worker.async_session",
             _mock_session_factory(db_session),
         ),
-        patch.object(worker_mod.gateway, "charge", new=AsyncMock(side_effect=_charge)),
+        patch("random.random", side_effect=_random),
         patch.object(worker_mod.notifier, "notify", new=AsyncMock(return_value=True)),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):
@@ -202,14 +198,14 @@ async def test_retry_keeps_status_pending(
 async def test_nonexistent_payment_does_not_crash(
     db_session: AsyncSession,
 ) -> None:
-    worker_mod = __import__("entrypoints.messaging.worker", fromlist=["gateway"])
+    worker_mod = __import__("entrypoints.messaging.worker", fromlist=["notifier"])
 
     with (
         patch(
             "entrypoints.messaging.worker.async_session",
             _mock_session_factory(db_session),
         ),
-        patch.object(worker_mod.gateway, "charge", new=AsyncMock(return_value=True)),
+        patch("random.random", return_value=0.0),
         patch.object(worker_mod.notifier, "notify", new=AsyncMock(return_value=True)),
         patch("asyncio.sleep", new_callable=AsyncMock),
     ):

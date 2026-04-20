@@ -1,26 +1,25 @@
 import uuid
-from dataclasses import dataclass
 from typing import ClassVar
 
+from pydantic import BaseModel, ConfigDict
 
-@dataclass(frozen=True)
-class DomainEvent:
+
+class DomainEvent(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     event_type: ClassVar[str]
 
 
-@dataclass(frozen=True)
 class PaymentCreated(DomainEvent):
     event_type: ClassVar[str] = "payment.created"
     payment_id: uuid.UUID
 
 
-@dataclass(frozen=True)
 class PaymentSucceeded(DomainEvent):
     event_type: ClassVar[str] = "payment.succeeded"
     payment_id: uuid.UUID
 
 
-@dataclass(frozen=True)
 class PaymentFailed(DomainEvent):
     event_type: ClassVar[str] = "payment.failed"
     payment_id: uuid.UUID

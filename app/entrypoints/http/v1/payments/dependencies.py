@@ -7,20 +7,20 @@ from entrypoints.http.dependencies import get_session
 from infrastructure.adapters.repositories.payment_repository_pg import (
     PostgresPaymentRepository,
 )
-from infrastructure.unit_of_work import SqlAlchemyUnitOfWork
+from infrastructure.unit_of_work import UnitOfWork
 
 
-def get_uow(session: AsyncSession = Depends(get_session)) -> SqlAlchemyUnitOfWork:
-    return SqlAlchemyUnitOfWork(session, PostgresPaymentRepository(session))
+def get_uow(session: AsyncSession = Depends(get_session)) -> UnitOfWork:
+    return UnitOfWork(session, PostgresPaymentRepository(session))
 
 
 def get_create_payment_use_case(
-    uow: SqlAlchemyUnitOfWork = Depends(get_uow),
+    uow: UnitOfWork = Depends(get_uow),
 ) -> CreatePaymentUseCase:
     return CreatePaymentUseCase(uow)
 
 
 def get_get_payment_use_case(
-    uow: SqlAlchemyUnitOfWork = Depends(get_uow),
+    session: AsyncSession = Depends(get_session),
 ) -> GetPaymentUseCase:
-    return GetPaymentUseCase(uow)
+    return GetPaymentUseCase(PostgresPaymentRepository(session))

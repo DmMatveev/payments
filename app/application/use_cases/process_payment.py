@@ -1,18 +1,25 @@
+import asyncio
 import logging
+import random
 import uuid
-from dataclasses import dataclass
+
+from pydantic import BaseModel, ConfigDict
 
 from domain.payment.exceptions import PaymentNotFoundError
 from domain.payment.payment import Payment
-from infrastructure.adapters.payment_gateway_random import RandomPaymentGateway
 from infrastructure.adapters.webhook_notifier_http import HttpWebhookNotifier
-from infrastructure.unit_of_work import SqlAlchemyUnitOfWork
+from infrastructure.unit_of_work import UnitOfWork
 
 logger = logging.getLogger(__name__)
 
+GATEWAY_SUCCESS_RATE = 0.9
+GATEWAY_MIN_DELAY = 2.0
+GATEWAY_MAX_DELAY = 5.0
 
-@dataclass(frozen=True)
-class ProcessPaymentResult:
+
+class ProcessPaymentResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     payment: Payment
     succeeded: bool
 
@@ -20,12 +27,10 @@ class ProcessPaymentResult:
 class ProcessPaymentUseCase:
     def __init__(
         self,
-        uow: SqlAlchemyUnitOfWork,
-        gateway: RandomPaymentGateway,
+        uow: UnitOfWork,
         notifier: HttpWebhookNotifier,
     ) -> None:
         self._uow = uow
-        self._gateway = gateway
         self._notifier = notifier
 
     async def execute(
@@ -36,7 +41,8 @@ class ProcessPaymentUseCase:
             if payment is None:
                 raise PaymentNotFoundError(f"payment {payment_id} not found")
 
-            succeeded = await self._gateway.charge(payment)
+            await asyncio.sleep(random.uniform(GATEWAY_MIN_DELAY, GATEWAY_MAX_DELAY))
+            succeeded = random.random() < GATEWAY_SUCCESS_RATE
 
             if succeeded:
                 payment.mark_succeeded()

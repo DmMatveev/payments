@@ -7,7 +7,7 @@ from infrastructure.adapters.repositories.payment_repository_pg import (
 )
 
 
-class SqlAlchemyUnitOfWork:
+class UnitOfWork:
     def __init__(
         self,
         session: AsyncSession,

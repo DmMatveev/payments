@@ -1,7 +1,8 @@
 import uuid
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+
+from pydantic import BaseModel, PrivateAttr
 
 from domain.payment.enums import PaymentStatus
 from domain.payment.events import (
@@ -18,8 +19,7 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-@dataclass
-class Payment:
+class Payment(BaseModel):
     id: uuid.UUID
     money: Money
     description: str
@@ -28,8 +28,8 @@ class Payment:
     status: PaymentStatus
     created_at: datetime
     processed_at: datetime | None = None
-    metadata: dict[str, Any] | None = field(default=None)
-    _events: list[DomainEvent] = field(default_factory=list, repr=False, compare=False)
+    metadata: dict[str, Any] | None = None
+    _events: list[DomainEvent] = PrivateAttr(default_factory=list)
 
     @classmethod
     def create(

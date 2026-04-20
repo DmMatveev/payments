@@ -7,13 +7,12 @@ from faststream.rabbit import RabbitBroker, RabbitMessage, RabbitQueue
 
 from application.use_cases.process_payment import ProcessPaymentUseCase
 from domain.payment.exceptions import InvalidPaymentStateError, PaymentNotFoundError
-from infrastructure.adapters.payment_gateway_random import RandomPaymentGateway
 from infrastructure.adapters.repositories.payment_repository_pg import (
     PostgresPaymentRepository,
 )
 from infrastructure.adapters.webhook_notifier_http import HttpWebhookNotifier
 from infrastructure.configs import async_session, settings
-from infrastructure.unit_of_work import SqlAlchemyUnitOfWork
+from infrastructure.unit_of_work import UnitOfWork
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,6 @@ payments_queue = RabbitQueue(
 )
 dlq = RabbitQueue(DLQ_NAME, durable=True)
 
-gateway = RandomPaymentGateway()
 notifier = HttpWebhookNotifier()
 
 
@@ -52,8 +50,8 @@ async def process_payment(body: dict, msg: RabbitMessage) -> None:
     logger.info("Processing payment %s, attempt %d", payment_id, retry_count + 1)
 
     async with async_session() as session:
-        uow = SqlAlchemyUnitOfWork(session, PostgresPaymentRepository(session))
-        use_case = ProcessPaymentUseCase(uow, gateway, notifier)
+        uow = UnitOfWork(session, PostgresPaymentRepository(session))
+        use_case = ProcessPaymentUseCase(uow, notifier)
         try:
             result = await use_case.execute(
                 payment_id, is_final_attempt=is_final_attempt

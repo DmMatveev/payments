@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from infrastructure.adapters.rabbit_event_publisher import RabbitEventPublisher
 from infrastructure.configs import async_session, settings
-from infrastructure.db.models import PaymentModel
+from infrastructure.db.models import OutboxModel
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +42,8 @@ async def run_outbox_relay() -> None:
 async def _publish_next(publisher: RabbitEventPublisher) -> bool:
     async with async_session() as session:
         result = await session.execute(
-            select(PaymentModel)
-            .where(PaymentModel.pending_event.is_not(None))
+            select(OutboxModel)
+            .order_by(OutboxModel.created_at)
             .limit(1)
             .with_for_update(skip_locked=True)
         )
@@ -51,9 +51,7 @@ async def _publish_next(publisher: RabbitEventPublisher) -> bool:
         if row is None:
             return False
 
-        await publisher.publish(
-            {"event_type": row.pending_event, "payment_id": str(row.id)}
-        )
-        row.pending_event = None
+        await publisher.publish(row.payload)
+        await session.delete(row)
         await session.commit()
         return True
