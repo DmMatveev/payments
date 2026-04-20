@@ -59,12 +59,13 @@ class PaymentFactory(BaseFactory[PaymentModel]):
 class OutboxFactory(BaseFactory[OutboxModel]):
     class Meta:
         model = OutboxModel
+        exclude = ("event_type", "payment_id")
 
     id = factory.LazyFunction(uuid.uuid4)
-    aggregate_id = factory.LazyFunction(uuid.uuid4)
     event_type = "payment.created"
+    payment_id = factory.LazyFunction(uuid.uuid4)
     payload = factory.LazyAttribute(
-        lambda o: {"event_type": o.event_type, "payment_id": str(o.aggregate_id)}
+        lambda o: {"event_type": o.event_type, "payment_id": str(o.payment_id)}
     )
 
 

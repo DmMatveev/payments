@@ -40,8 +40,6 @@ def upgrade() -> None:
     op.create_table(
         "outbox",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("aggregate_id", UUID(as_uuid=True), nullable=False),
-        sa.Column("event_type", sa.String(64), nullable=False),
         sa.Column("payload", sa.JSON(), nullable=False),
         sa.Column("locked_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(

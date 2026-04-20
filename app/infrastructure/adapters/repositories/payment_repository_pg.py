@@ -51,8 +51,6 @@ class PostgresPaymentRepository(PaymentRepository):
     def _to_outbox(event: DomainEvent, aggregate_id: uuid.UUID) -> OutboxModel:
         return OutboxModel(
             id=uuid.uuid4(),
-            aggregate_id=aggregate_id,
-            event_type=event.event_type,
             payload={
                 "event_type": event.event_type,
                 "payment_id": str(aggregate_id),

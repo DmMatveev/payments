@@ -26,7 +26,7 @@ async def test_case_1(db_session: AsyncSession) -> None:
 
     assert result is True
     publisher.publish.assert_awaited_once_with(
-        PaymentEventPayload(event_type=msg.event_type, payment_id=str(msg.aggregate_id))
+        PaymentEventPayload.model_validate(msg.payload)
     )
 
     remaining = (await db_session.execute(OutboxModel.__table__.select())).all()
@@ -63,5 +63,5 @@ async def test_case_3(db_session: AsyncSession) -> None:
 
     assert result is True
     publisher.publish.assert_awaited_once_with(
-        PaymentEventPayload(event_type=stale.event_type, payment_id=str(stale.aggregate_id))
+        PaymentEventPayload.model_validate(stale.payload)
     )
