@@ -16,3 +16,7 @@ class InvalidPaymentStateError(DomainError):
 
 class InvalidMoneyError(DomainError):
     pass
+
+
+class InvalidIdempotencyKeyError(DomainError):
+    pass

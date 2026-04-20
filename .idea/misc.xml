@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="GoImports">
-    <option name="excludedPackages">
-      <array>
-        <option value="github.com/pkg/errors" />
-        <option value="golang.org/x/net/context" />
-      </array>
-    </option>
+  <component name="Black">
+    <option name="sdkName" value="uv (payments-1)" />
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_17" default="true" project-jdk-name="17" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_17" default="true" project-jdk-name="uv (payments-1)" project-jdk-type="Python SDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
 </project>

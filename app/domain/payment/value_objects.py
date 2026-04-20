@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from domain.payment.enums import Currency
-from domain.payment.exceptions import InvalidMoneyError
+from domain.payment.exceptions import InvalidIdempotencyKeyError, InvalidMoneyError
 
 
 @dataclass(frozen=True)
@@ -23,7 +23,7 @@ class IdempotencyKey:
 
     def __post_init__(self) -> None:
         if not self.value or not self.value.strip():
-            raise InvalidMoneyError("idempotency key must be non-empty")
+            raise InvalidIdempotencyKeyError("idempotency key must be non-empty")
 
     def __str__(self) -> str:
         return self.value

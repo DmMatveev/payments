@@ -1,12 +1,12 @@
 import uuid
 
-from application.ports.unit_of_work import UnitOfWork
 from domain.payment.exceptions import PaymentNotFoundError
 from domain.payment.payment import Payment
+from infrastructure.unit_of_work import SqlAlchemyUnitOfWork
 
 
 class GetPaymentUseCase:
-    def __init__(self, uow: UnitOfWork) -> None:
+    def __init__(self, uow: SqlAlchemyUnitOfWork) -> None:
         self._uow = uow
 
     async def execute(self, payment_id: uuid.UUID) -> Payment:

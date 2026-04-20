@@ -2,25 +2,19 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.ports.unit_of_work import UnitOfWork
-from infrastructure.adapters.repositories.outbox_repository_pg import (
-    PostgresOutboxRepository,
-)
 from infrastructure.adapters.repositories.payment_repository_pg import (
     PostgresPaymentRepository,
 )
 
 
-class SqlAlchemyUnitOfWork(UnitOfWork):
+class SqlAlchemyUnitOfWork:
     def __init__(
         self,
         session: AsyncSession,
         payment_repository: PostgresPaymentRepository,
-        outbox_repository: PostgresOutboxRepository,
     ) -> None:
         self._session = session
         self.payment_repository = payment_repository
-        self.outbox_repository = outbox_repository
 
     async def __aenter__(self) -> Self:
         return self

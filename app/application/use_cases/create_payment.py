@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from application.ports.unit_of_work import UnitOfWork
 from domain.payment.enums import Currency
 from domain.payment.payment import Payment
 from domain.payment.value_objects import IdempotencyKey, Money
+from infrastructure.unit_of_work import SqlAlchemyUnitOfWork
 
 
 @dataclass(frozen=True)
@@ -19,7 +19,7 @@ class CreatePaymentData:
 
 
 class CreatePaymentUseCase:
-    def __init__(self, uow: UnitOfWork) -> None:
+    def __init__(self, uow: SqlAlchemyUnitOfWork) -> None:
         self._uow = uow
 
     async def execute(self, data: CreatePaymentData) -> Payment:
@@ -41,5 +41,4 @@ class CreatePaymentUseCase:
             )
 
             await uow.payment_repository.add(payment)
-            await uow.outbox_repository.enqueue_payment_created(payment.id)
             return payment
