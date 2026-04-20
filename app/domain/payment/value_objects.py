@@ -1,9 +1,21 @@
+import enum
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from domain.payment.enums import Currency
 from domain.payment.exceptions import InvalidIdempotencyKeyError, InvalidMoneyError
+
+
+class Currency(str, enum.Enum):
+    RUB = "RUB"
+    USD = "USD"
+    EUR = "EUR"
+
+
+class PaymentStatus(str, enum.Enum):
+    PENDING = "pending"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
 
 
 class Money(BaseModel):

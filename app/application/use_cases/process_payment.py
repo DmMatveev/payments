@@ -16,7 +16,7 @@ GATEWAY_SUCCESS_RATE = 0.9
 GATEWAY_MIN_DELAY = 2.0
 GATEWAY_MAX_DELAY = 5.0
 
-# TODO
+
 
 
 class ProcessPaymentResult(BaseModel):
@@ -55,6 +55,7 @@ class ProcessPaymentUseCase:
 
             await uow.payment_repository.update(payment)
 
+        # TODO
         await self._notifier.notify(
             payment.webhook_url,
             {

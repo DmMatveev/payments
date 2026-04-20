@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from domain.payment.enums import Currency
+from domain.payment.value_objects import Currency
 from domain.payment.payment import Payment
 from domain.payment.value_objects import IdempotencyKey, Money
 from infrastructure.unit_of_work import UnitOfWork

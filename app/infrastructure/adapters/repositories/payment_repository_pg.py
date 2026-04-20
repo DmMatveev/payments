@@ -4,13 +4,10 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.payment.enums import Currency, PaymentStatus
-from domain.payment.events import DomainEvent
 from domain.payment.payment import Payment
 from domain.payment.repositories import PaymentRepository
-from domain.payment.value_objects import IdempotencyKey, Money
+from domain.payment.value_objects import Currency, IdempotencyKey, Money, PaymentStatus
 from infrastructure.db.models import OutboxModel, PaymentModel
-# TODO
 
 
 class PostgresPaymentRepository(PaymentRepository):
@@ -20,7 +17,7 @@ class PostgresPaymentRepository(PaymentRepository):
     async def add(self, payment: Payment) -> None:
         row = self._to_row(payment)
         self._session.add(row)
-        self._enqueue_events(payment)
+        self._add_outbox("payment.created", payment.id)
         await self._session.flush()
 
     async def get_by_id(self, payment_id: uuid.UUID) -> Payment | None:
@@ -40,22 +37,13 @@ class PostgresPaymentRepository(PaymentRepository):
             raise LookupError(f"payment {payment.id} not found")
         row.status = payment.status.value
         row.processed_at = payment.processed_at
-        self._enqueue_events(payment)
         await self._session.flush()
 
-    def _enqueue_events(self, payment: Payment) -> None:
-        for event in payment.pull_events():
-            self._session.add(self._to_outbox(event, payment.id))
-
-    @staticmethod
-    def _to_outbox(event: DomainEvent, aggregate_id: uuid.UUID) -> OutboxModel:
-        return OutboxModel(
+    def _add_outbox(self, event_type: str, payment_id: uuid.UUID) -> None:
+        self._session.add(OutboxModel(
             id=uuid.uuid4(),
-            payload={
-                "event_type": event.event_type,
-                "payment_id": str(aggregate_id),
-            },
-        )
+            payload={"event_type": event_type, "payment_id": str(payment_id)},
+        ))
 
     async def _get_row_by_id(self, payment_id: uuid.UUID) -> PaymentModel | None:
         result = await self._session.execute(
