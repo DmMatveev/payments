@@ -12,7 +12,6 @@ from entrypoints.http.v1 import router as api_v1_router
 from infrastructure.outbox_relay import run_outbox_relay
 
 
-
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     task = asyncio.create_task(run_outbox_relay())
@@ -27,5 +26,3 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Payment Processing Service", lifespan=lifespan)
 register_exception_handlers(app)
 app.include_router(api_v1_router)
-
-

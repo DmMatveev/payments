@@ -67,5 +67,3 @@ class OutboxFactory(BaseFactory[OutboxModel]):
     payload = factory.LazyAttribute(
         lambda o: {"event_type": o.event_type, "payment_id": str(o.payment_id)}
     )
-
-

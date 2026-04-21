@@ -18,7 +18,9 @@ API_KEY = "secret-api-key"
 HEADERS = {"X-API-Key": API_KEY}
 
 
-async def get_payment_expected_result(session: AsyncSession, payment_id: uuid.UUID) -> dict:
+async def get_payment_expected_result(
+    session: AsyncSession, payment_id: uuid.UUID
+) -> dict:
     payment = await session.get(PaymentModel, payment_id)
     return {
         "id": str(payment.id),

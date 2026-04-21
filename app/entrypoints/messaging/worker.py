@@ -37,6 +37,7 @@ notifier = HttpWebhookNotifier()
 
 # TODO
 
+
 @broker.subscriber(payments_queue)
 async def process_payment(body: dict, msg: RabbitMessage) -> None:
     event_type = body.get("event_type", "payment.created")

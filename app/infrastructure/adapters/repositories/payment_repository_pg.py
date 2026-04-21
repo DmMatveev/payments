@@ -11,6 +11,7 @@ from infrastructure.db.models import OutboxModel, PaymentModel
 
 # TODO
 
+
 class PostgresPaymentRepository(PaymentRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -41,10 +42,12 @@ class PostgresPaymentRepository(PaymentRepository):
         await self._session.flush()
 
     def _add_outbox(self, event_type: str, payment_id: uuid.UUID) -> None:
-        self._session.add(OutboxModel(
-            id=uuid.uuid4(),
-            payload={"event_type": event_type, "payment_id": str(payment_id)},
-        ))
+        self._session.add(
+            OutboxModel(
+                id=uuid.uuid4(),
+                payload={"event_type": event_type, "payment_id": str(payment_id)},
+            )
+        )
 
     async def _get_row_by_id(self, payment_id: uuid.UUID) -> PaymentModel | None:
         result = await self._session.execute(
