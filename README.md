@@ -94,11 +94,13 @@ RabbitMQ UI: <http://localhost:15672> (guest / guest)
 
 ```json
 {
-  "payment_id": "8e2f1e5a-2a7a-4ab3-9f5d-1e7e8f9a0b3c",
+  "payment_id": "121aec34-2f03-4d53-adf2-c6eb0d2af604",
   "status": "pending",
-  "created_at": "2026-04-22T10:15:00.000000+00:00"
+  "created_at": "2026-04-22T10:15:00.000000Z"
 }
 ```
+
+`payment_id` генерируется сервером и не совпадает с `Idempotency-Key`.
 
 Пример:
 
@@ -121,7 +123,7 @@ curl -X POST http://localhost:8000/api/v1/payments \
 Получение детальной информации о платеже.
 
 ```bash
-curl http://localhost:8000/api/v1/payments/8e2f1e5a-2a7a-4ab3-9f5d-1e7e8f9a0b3c \
+curl http://localhost:8000/api/v1/payments/121aec34-2f03-4d53-adf2-c6eb0d2af604 \
   -H 'X-API-Key: secret-api-key'
 ```
 
@@ -129,7 +131,7 @@ curl http://localhost:8000/api/v1/payments/8e2f1e5a-2a7a-4ab3-9f5d-1e7e8f9a0b3c 
 
 ```json
 {
-  "id": "8e2f1e5a-2a7a-4ab3-9f5d-1e7e8f9a0b3c",
+  "id": "121aec34-2f03-4d53-adf2-c6eb0d2af604",
   "amount": "199.90",
   "currency": "RUB",
   "description": "Order #42",
@@ -137,8 +139,8 @@ curl http://localhost:8000/api/v1/payments/8e2f1e5a-2a7a-4ab3-9f5d-1e7e8f9a0b3c 
   "status": "succeeded",
   "idempotency_key": "8e2f1e5a-2a7a-4ab3-9f5d-1e7e8f9a0b3c",
   "webhook_url": "https://example.com/webhooks/payments",
-  "created_at": "2026-04-22T10:15:00.000000+00:00",
-  "processed_at": "2026-04-22T10:15:03.512000+00:00"
+  "created_at": "2026-04-22T10:15:00.000000Z",
+  "processed_at": "2026-04-22T10:15:03.512000Z"
 }
 ```
 
@@ -148,11 +150,11 @@ curl http://localhost:8000/api/v1/payments/8e2f1e5a-2a7a-4ab3-9f5d-1e7e8f9a0b3c 
 
 ```json
 {
-  "payment_id": "8e2f1e5a-2a7a-4ab3-9f5d-1e7e8f9a0b3c",
+  "payment_id": "121aec34-2f03-4d53-adf2-c6eb0d2af604",
   "status": "succeeded",
   "amount": "199.90",
   "currency": "RUB",
-  "processed_at": "2026-04-22T10:15:03.512000+00:00"
+  "processed_at": "2026-04-22T10:15:03.512000Z"
 }
 ```
 
