@@ -2,6 +2,9 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from infrastructure.adapters.repositories.outbox_repository_pg import (
+    PostgresOutboxRepository,
+)
 from infrastructure.adapters.repositories.payment_repository_pg import (
     PostgresPaymentRepository,
 )
@@ -10,6 +13,7 @@ from infrastructure.adapters.repositories.payment_repository_pg import (
 class UnitOfWork:
     _session: AsyncSession
     payment_repository: PostgresPaymentRepository
+    outbox_repository: PostgresOutboxRepository
 
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         self._session_factory = session_factory
@@ -17,6 +21,7 @@ class UnitOfWork:
     async def __aenter__(self) -> Self:
         self._session = self._session_factory()
         self.payment_repository = PostgresPaymentRepository(self._session)
+        self.outbox_repository = PostgresOutboxRepository(self._session)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:

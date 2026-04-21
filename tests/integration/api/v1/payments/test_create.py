@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from infrastructure.db.models import PaymentModel
+from infrastructure.db.models import OutboxModel, PaymentModel
 from tests.factories import PaymentFactory
 
 # Тест-кейсы:
@@ -56,6 +56,11 @@ async def test_case_1(db_session: AsyncSession, client: AsyncClient) -> None:
     assert response.status_code == HTTPStatus.ACCEPTED, response.text
     assert response.json() == await get_expected_result(db_session, key)
 
+    outbox = (await db_session.execute(select(OutboxModel))).scalars().all()
+    assert [row.payload for row in outbox] == [
+        {"event_type": "payment.created", "payment_id": response.json()["payment_id"]}
+    ]
+
 
 @pytest.mark.asyncio
 async def test_case_2(client: AsyncClient, db_session: AsyncSession) -> None:
@@ -72,6 +77,9 @@ async def test_case_2(client: AsyncClient, db_session: AsyncSession) -> None:
 
     assert response.status_code == HTTPStatus.ACCEPTED, response.text
     assert response.json() == await get_expected_result(db_session, key)
+
+    outbox = (await db_session.execute(select(OutboxModel))).scalars().all()
+    assert outbox == [], "idempotent retry must not produce a duplicate outbox event"
 
 
 @pytest.mark.asyncio

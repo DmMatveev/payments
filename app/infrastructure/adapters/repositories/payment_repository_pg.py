@@ -7,9 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from domain.payment.payment import Payment
 from domain.payment.repositories import PaymentRepository
 from domain.payment.value_objects import Currency, IdempotencyKey, Money, PaymentStatus
-from infrastructure.db.models import OutboxModel, PaymentModel
-
-# TODO
+from infrastructure.db.models import PaymentModel
 
 
 class PostgresPaymentRepository(PaymentRepository):
@@ -17,9 +15,7 @@ class PostgresPaymentRepository(PaymentRepository):
         self._session = session
 
     async def add(self, payment: Payment) -> None:
-        row = self._to_row(payment)
-        self._session.add(row)
-        self._add_outbox("payment.created", payment.id)
+        self._session.add(self._to_row(payment))
         await self._session.flush()
 
     async def get_by_id(self, payment_id: uuid.UUID) -> Payment | None:
@@ -40,14 +36,6 @@ class PostgresPaymentRepository(PaymentRepository):
         row.status = payment.status.value
         row.processed_at = payment.processed_at
         await self._session.flush()
-
-    def _add_outbox(self, event_type: str, payment_id: uuid.UUID) -> None:
-        self._session.add(
-            OutboxModel(
-                id=uuid.uuid4(),
-                payload={"event_type": event_type, "payment_id": str(payment_id)},
-            )
-        )
 
     async def _get_row_by_id(self, payment_id: uuid.UUID) -> PaymentModel | None:
         result = await self._session.execute(

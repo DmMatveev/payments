@@ -21,31 +21,19 @@ MAX_RETRIES = settings.payment_max_retries
 broker = RabbitBroker(settings.rabbitmq_url)
 app = FastStream(broker)
 
-dlq_arguments: ClassicQueueArgs = {
+payments_queue_args: ClassicQueueArgs = {
     "x-dead-letter-exchange": "",
     "x-dead-letter-routing-key": DLQ_NAME,
 }
 payments_queue = RabbitQueue(
-    PAYMENTS_QUEUE,
-    durable=True,
-    arguments=dlq_arguments,
+    PAYMENTS_QUEUE, durable=True, arguments=payments_queue_args
 )
-dlq = RabbitQueue(DLQ_NAME, durable=True)
 
 notifier = HttpWebhookNotifier()
 
 
-# TODO
-
-
 @broker.subscriber(payments_queue)
 async def process_payment(body: dict, msg: RabbitMessage) -> None:
-    event_type = body.get("event_type", "payment.created")
-    if event_type != "payment.created":
-        logger.info("Skipping event %s", event_type)
-        await msg.ack()
-        return
-
     payment_id = uuid.UUID(body["payment_id"])
     retry_count = body.get("retry_count", 0)
     is_final_attempt = retry_count + 1 >= MAX_RETRIES
@@ -56,10 +44,6 @@ async def process_payment(body: dict, msg: RabbitMessage) -> None:
         result = await ProcessPaymentUseCase(uow, notifier).execute(payment_id)
     except PaymentNotFoundError:
         logger.error("Payment %s not found", payment_id)
-        await msg.ack()
-        return
-    except InvalidPaymentStateError:
-        logger.info("Payment %s already in terminal state", payment_id)
         await msg.ack()
         return
 
@@ -79,11 +63,7 @@ async def process_payment(body: dict, msg: RabbitMessage) -> None:
         )
         await asyncio.sleep(delay)
         await broker.publish(
-            {
-                "event_type": "payment.created",
-                "payment_id": str(payment_id),
-                "retry_count": retry_count + 1,
-            },
+            {"payment_id": str(payment_id), "retry_count": retry_count + 1},
             queue=payments_queue,
         )
         await msg.ack()
@@ -93,15 +73,8 @@ async def process_payment(body: dict, msg: RabbitMessage) -> None:
         await MarkPaymentFailedUseCase(uow, notifier).execute(payment_id)
     except InvalidPaymentStateError:
         logger.info("Payment %s already in terminal state", payment_id)
+
     await msg.reject(requeue=False)
     logger.warning(
-        "Payment %s failed after %d attempts, moved to DLQ",
-        payment_id,
-        MAX_RETRIES,
+        "Payment %s failed after %d attempts, moved to DLQ", payment_id, MAX_RETRIES
     )
-
-
-@broker.subscriber(dlq)
-async def handle_dlq(body: dict, msg: RabbitMessage) -> None:
-    logger.error("DLQ received: %s", body)
-    await msg.ack()

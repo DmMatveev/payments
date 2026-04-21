@@ -2,7 +2,8 @@ import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
-import aio_pika
+from faststream.rabbit import RabbitBroker, RabbitQueue
+from faststream.rabbit.schemas.queue import ClassicQueueArgs
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,21 +19,23 @@ LOCK_TIMEOUT = timedelta(minutes=1)
 
 logger = logging.getLogger(__name__)
 
-QUEUE_ARGUMENTS = {
-    "x-dead-letter-exchange": "",
-    "x-dead-letter-routing-key": DLQ_NAME,
-}
 POLL_INTERVAL_SECONDS = 1
 
 
 async def run_outbox_relay() -> None:
-    connection = await aio_pika.connect_robust(settings.rabbitmq_url)
-    channel = await connection.channel()
+    broker = RabbitBroker(settings.rabbitmq_url)
+    await broker.connect()
 
-    await channel.declare_queue(PAYMENTS_QUEUE, durable=True, arguments=QUEUE_ARGUMENTS)
-    await channel.declare_queue(DLQ_NAME, durable=True)
+    queue_args: ClassicQueueArgs = {
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": DLQ_NAME,
+    }
+    await broker.declare_queue(
+        RabbitQueue(PAYMENTS_QUEUE, durable=True, arguments=queue_args)
+    )
+    await broker.declare_queue(RabbitQueue(DLQ_NAME, durable=True))
 
-    publisher = RabbitEventPublisher(channel, routing_key=PAYMENTS_QUEUE)
+    publisher = RabbitEventPublisher(broker, queue=PAYMENTS_QUEUE)
     logger.info("Outbox relay started")
 
     try:
@@ -41,7 +44,7 @@ async def run_outbox_relay() -> None:
                 if not await publish_next_event(session, publisher):
                     await asyncio.sleep(POLL_INTERVAL_SECONDS)
     except asyncio.CancelledError:
-        await connection.close()
+        await broker.close()
         raise
 
 

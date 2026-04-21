@@ -43,4 +43,5 @@ class CreatePaymentUseCase:
             )
 
             await uow.payment_repository.add(payment)
+            await uow.outbox_repository.add("payment.created", payment.id)
             return payment

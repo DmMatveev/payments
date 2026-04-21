@@ -14,7 +14,6 @@ from tests.factories import PaymentFactory
 # 3. Финальный fail: статус failed, webhook со статусом failed, msg.reject(requeue=False)
 # 4. Редоставка уже succeeded платежа: шлюз не дёргается, webhook уходит повторно, msg.ack
 # 5. Несуществующий платёж: msg.ack без падений
-# 6. Незнакомый event_type: msg.ack, БД и webhook не трогаются
 
 
 @pytest.fixture
@@ -44,11 +43,7 @@ def _patch_sleep():
 
 
 def get_body(payment_id: uuid.UUID, retry_count: int = 0) -> dict:
-    return {
-        "event_type": "payment.created",
-        "payment_id": str(payment_id),
-        "retry_count": retry_count,
-    }
+    return {"payment_id": str(payment_id), "retry_count": retry_count}
 
 
 @pytest.mark.asyncio
@@ -130,6 +125,7 @@ async def test_case_3(
     mock_notify.assert_awaited_once()
     _, payload = mock_notify.call_args.args
     assert payload["status"] == "failed"
+    assert payload["payment_id"] == str(payment.id)
 
     mock_publish.assert_not_awaited()
     mock_msg.reject.assert_awaited_once_with(requeue=False)
@@ -178,25 +174,3 @@ async def test_case_5(
     mock_publish.assert_not_awaited()
     mock_msg.ack.assert_awaited_once()
     mock_msg.reject.assert_not_awaited()
-
-
-@pytest.mark.asyncio
-async def test_case_6(
-    db_session: AsyncSession,
-    mock_msg: AsyncMock,
-    mock_notify: AsyncMock,
-    mock_publish: AsyncMock,
-) -> None:
-    """6. Незнакомый event_type: msg.ack, БД и webhook не трогаются."""
-
-    payment = await PaymentFactory.create()
-    body = {"event_type": "payment.refunded", "payment_id": str(payment.id)}
-
-    await process_payment(body, mock_msg)
-
-    await db_session.refresh(payment)
-    assert payment.status == "pending"
-
-    mock_notify.assert_not_awaited()
-    mock_publish.assert_not_awaited()
-    mock_msg.ack.assert_awaited_once()
