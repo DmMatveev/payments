@@ -1,9 +1,14 @@
 from collections.abc import AsyncGenerator
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
-from infrastructure.configs import settings
+from infrastructure.configs.config import settings
 from infrastructure.db.models import Base
 
 
@@ -24,8 +29,10 @@ async def test_engine():
 
 @pytest.fixture
 async def db_session(test_engine) -> AsyncGenerator[AsyncSession]:
-    async with test_engine.connect() as conn:
-        async with conn.begin() as trans:
-            session = AsyncSession(bind=conn, expire_on_commit=False)
-            yield session
-            await trans.rollback()
+    maker = async_sessionmaker(test_engine, expire_on_commit=False)
+    async with maker() as session:
+        yield session
+
+    async with test_engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(text(f'TRUNCATE TABLE "{table.name}" CASCADE'))

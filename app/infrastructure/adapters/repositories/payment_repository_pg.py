@@ -9,6 +9,7 @@ from domain.payment.repositories import PaymentRepository
 from domain.payment.value_objects import Currency, IdempotencyKey, Money, PaymentStatus
 from infrastructure.db.models import OutboxModel, PaymentModel
 
+# TODO
 
 class PostgresPaymentRepository(PaymentRepository):
     def __init__(self, session: AsyncSession) -> None:

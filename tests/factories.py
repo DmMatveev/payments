@@ -17,7 +17,7 @@ class BaseFactory(factory.alchemy.SQLAlchemyModelFactory, Generic[T]):
 
     class Meta:
         abstract = True
-        sqlalchemy_session_persistence = "flush"
+        sqlalchemy_session_persistence = "commit"
 
     @classmethod
     def _get_session(cls):

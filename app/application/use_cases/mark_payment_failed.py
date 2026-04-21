@@ -1,51 +1,29 @@
-import asyncio
-import logging
-import random
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
 from domain.payment.exceptions import PaymentNotFoundError
-from domain.payment.payment import Payment
 from domain.payment.value_objects import PaymentStatus
 from infrastructure.adapters.webhook_notifier_http import HttpWebhookNotifier
 from infrastructure.unit_of_work import UnitOfWork
 
-logger = logging.getLogger(__name__)
 
-GATEWAY_SUCCESS_RATE = 0.9
-GATEWAY_MIN_DELAY = 2.0
-GATEWAY_MAX_DELAY = 5.0
-
-
-class ProcessPaymentResult(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    payment: Payment
-    succeeded: bool
-
-
-class ProcessPaymentUseCase:
+class MarkPaymentFailedUseCase:
     def __init__(self, uow: UnitOfWork, notifier: HttpWebhookNotifier) -> None:
         self._uow = uow
         self._notifier = notifier
 
-    async def execute(self, payment_id: uuid.UUID) -> ProcessPaymentResult:
+    async def execute(self, payment_id: uuid.UUID) -> None:
         async with self._uow as uow:
             payment = await uow.payment_repository.get_by_id(payment_id)
         if payment is None:
             raise PaymentNotFoundError(f"payment {payment_id} not found")
 
-        if payment.status is PaymentStatus.FAILED:
-            return ProcessPaymentResult(payment=payment, succeeded=False)
-
         if payment.status is PaymentStatus.PENDING:
-            if not await self._process_payment(payment):
-                return ProcessPaymentResult(payment=payment, succeeded=False)
-
-            payment.mark_succeeded()
+            payment.mark_failed()
             async with self._uow as uow:
                 await uow.payment_repository.update(payment)
+
+        if payment.status is not PaymentStatus.FAILED:
+            return
 
         await self._notifier.notify(
             payment.webhook_url,
@@ -59,8 +37,3 @@ class ProcessPaymentUseCase:
                 else None,
             },
         )
-        return ProcessPaymentResult(payment=payment, succeeded=True)
-
-    async def _process_payment(self, _: Payment) -> bool:
-        await asyncio.sleep(random.uniform(GATEWAY_MIN_DELAY, GATEWAY_MAX_DELAY))
-        return random.random() < GATEWAY_SUCCESS_RATE

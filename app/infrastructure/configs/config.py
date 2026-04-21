@@ -16,6 +16,8 @@ class Settings(BaseSettings):
 
     api_key: str = "secret-api-key"
 
+    payment_max_retries: int = 3
+
     @computed_field
     @property
     def database_url(self) -> str:
@@ -30,3 +32,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+PAYMENTS_QUEUE = "payments.new"
+DLQ_NAME = "payments.dlq"

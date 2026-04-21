@@ -10,15 +10,13 @@ from infrastructure.adapters.rabbit_event_publisher import (
     PaymentEventPayload,
     RabbitEventPublisher,
 )
-from infrastructure.configs import async_session, settings
+from infrastructure.configs.config import DLQ_NAME, PAYMENTS_QUEUE, settings
+from infrastructure.configs.session import async_session
 from infrastructure.db.models import OutboxModel
 
 LOCK_TIMEOUT = timedelta(minutes=1)
 
 logger = logging.getLogger(__name__)
-
-PAYMENTS_QUEUE = "payments.new"
-DLQ_NAME = "payments.dlq"
 
 QUEUE_ARGUMENTS = {
     "x-dead-letter-exchange": "",

@@ -6,7 +6,6 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# TODO
 
 class HttpWebhookNotifier:
     def __init__(self, max_attempts: int = 3, timeout: float = 10.0) -> None:

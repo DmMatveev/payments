@@ -14,12 +14,14 @@ dependencies = [
     "aio-pika==9.5.5",
 ]
 
-[project.optional-dependencies]
-test = [
+[dependency-groups]
+dev = [
+    "ruff>=0.15.11",
     "pytest==8.3.5",
     "pytest-asyncio==0.26.0",
     "factory-boy==3.3.3",
 ]
+
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -27,3 +29,4 @@ asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 pythonpath = [".", "app"]
 testpaths = ["tests"]
+

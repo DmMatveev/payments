@@ -7,11 +7,12 @@ from entrypoints.http.dependencies import get_session
 from infrastructure.adapters.repositories.payment_repository_pg import (
     PostgresPaymentRepository,
 )
+from infrastructure.configs.session import async_session
 from infrastructure.unit_of_work import UnitOfWork
 
 
-def get_uow(session: AsyncSession = Depends(get_session)) -> UnitOfWork:
-    return UnitOfWork(session, PostgresPaymentRepository(session))
+def get_uow() -> UnitOfWork:
+    return UnitOfWork(async_session)
 
 
 def get_create_payment_use_case(
